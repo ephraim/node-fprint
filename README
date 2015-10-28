@@ -1,0 +1,3 @@
+This nodejs node is a wrapper around the libfprint library.
+
+http://www.freedesktop.org/wiki/Software/fprint/libfprint
