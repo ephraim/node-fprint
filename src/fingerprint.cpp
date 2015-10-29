@@ -45,72 +45,69 @@ NAN_METHOD(setDebug)
     }
 }
 
-NAN_METHOD(enroll) {
-    struct fp_print_data *enrolled_print = NULL;
-    int r;
-    int stages;
-    int stage = 1;
+NAN_METHOD(getEnrollStages) {
     struct fp_dev *dev;
 
     if(info.Length() != 1)
         return;
 
     dev = toFPDev(info[0]->ToNumber()->Value());
-    if(initalized != 0)
+    if(initalized != 0 || dev == NULL)
         return;
 
+    info.GetReturnValue().Set(fp_dev_get_nr_enroll_stages(dev));
+}
 
-    stages = fp_dev_get_nr_enroll_stages(dev);
+NAN_METHOD(enroll) {
+    struct fp_print_data *enrolled_print = NULL;
+    int r;
+    struct fp_dev *dev;
+    Nan::Callback callback;
+    v8::Local<v8::Object> obj;
+    string msg;
+
+    if(info.Length() != 2)
+        return;
+
+    obj = Nan::New<v8::Object>();
+    dev = toFPDev(info[0]->ToNumber()->Value());
+    callback.SetFunction(v8::Local<v8::Function>::Cast(info[1]));
+    if(initalized != 0 || dev == NULL)
+        goto error;
+
     do {
-        printf("\nScan your finger now (%d/%d)\n", stage, stages);
-
         r = fp_enroll_finger(dev, &enrolled_print);
-        if (r < 0) {
+        if (r < 0 || r == FP_ENROLL_FAIL) {
             printf("Enroll failed with error %d\n", r);
-            return;
+            goto error;
         }
-
         switch (r) {
-        case FP_ENROLL_COMPLETE:
-            printf("Enroll complete!\n");
-            break;
-        case FP_ENROLL_FAIL:
-            printf("Enroll failed, something wen't wrong :(\n");
-            return;
-        case FP_ENROLL_PASS:
-            stage++;
-            printf("Enroll stage passed. Yay!\n");
-            break;
-        case FP_ENROLL_RETRY:
-            printf("Didn't quite catch that. Please try again.\n");
-            break;
-        case FP_ENROLL_RETRY_TOO_SHORT:
-            printf("Your swipe was too short, please try again.\n");
-            break;
-        case FP_ENROLL_RETRY_CENTER_FINGER:
-            printf("Didn't catch that, please center your finger on the "
-                "sensor and try again.\n");
-            break;
-        case FP_ENROLL_RETRY_REMOVE_FINGER:
-            printf("Scan failed, please remove your finger and then try "
-                "again.\n");
-            break;
+            case FP_ENROLL_COMPLETE:    msg = "Enroll complete!"; break;
+            case FP_ENROLL_PASS:        msg = "Enroll stage passed. Yay!"; break;
+            case FP_ENROLL_RETRY:       msg = "Didn't quite catch that. Please try again."; break;
+            case FP_ENROLL_RETRY_TOO_SHORT:     msg = "Your swipe was too short, please try again."; break;
+            case FP_ENROLL_RETRY_CENTER_FINGER: msg = "Didn't catch that, please center your finger on the sensor and try again."; break;
+            case FP_ENROLL_RETRY_REMOVE_FINGER: msg = "Scan failed, please remove your finger and then try again."; break;
         }
-    } while (r != FP_ENROLL_COMPLETE);
+        Local<Value> argv[] = { Nan::New(r), Nan::New(msg).ToLocalChecked() };
+        callback.Call(2, argv);
+    } while (r != FP_ENROLL_COMPLETE && r != FP_ENROLL_RETRY_REMOVE_FINGER);
 
-    v8::Local<v8::Object> obj = Nan::New<v8::Object>();
-    if(enrolled_print) {
+    if(enrolled_print && r == FP_ENROLL_COMPLETE) {
         unsigned char *data;
         size_t size;
         size = fp_print_data_get_data(enrolled_print, &data);
         Nan::Set(obj, Nan::New("fingerprint").ToLocalChecked(), Nan::CopyBuffer((const char*)data, size).ToLocalChecked());
         Nan::Set(obj, Nan::New("result").ToLocalChecked(), Nan::New(true));
         fp_print_data_free(enrolled_print);
+        info.GetReturnValue().Set(obj);
+        return;
     }
-    else
-        Nan::Set(obj, Nan::New("result").ToLocalChecked(), Nan::New(false));
 
+error:
+    Nan::Set(obj, Nan::New("result").ToLocalChecked(), Nan::New(false));
     info.GetReturnValue().Set(obj);
+    return;
 }
 
 NAN_METHOD(verify) {
@@ -118,44 +115,45 @@ NAN_METHOD(verify) {
     int r;
     struct fp_dev *dev;
     Local<Object> obj;
+    Nan::Callback callback;
+    string msg;
 
-    if(info.Length() != 2)
+    if(info.Length() != 3)
         return;
 
     dev = toFPDev(info[0]->ToNumber()->Value());
     obj = info[1]->ToObject();
-    if(initalized != 0)
+    callback.SetFunction(v8::Local<v8::Function>::Cast(info[1]));
+    if(initalized != 0 || dev == NULL)
         return;
 
     data = fp_print_data_from_data((unsigned char*)node::Buffer::Data(obj), (size_t)node::Buffer::Length(obj));
 	do {
 		printf("\nScan your finger now.\n");
 		r = fp_verify_finger(dev, data);
+        printf("got r: %d\n", r);
 		if (r < 0) {
 			printf("verification failed with error %d :(\n", r);
-			return;
+			break;
 		}
 		switch (r) {
 		case FP_VERIFY_NO_MATCH:
-			printf("NO MATCH!\n");
-			return;
 		case FP_VERIFY_MATCH:
-			printf("MATCH!\n");
-			return;
-		case FP_VERIFY_RETRY:
-			printf("Scan didn't quite work. Please try again.\n");
 			break;
-		case FP_VERIFY_RETRY_TOO_SHORT:
-			printf("Swipe was too short, please try again.\n");
-			break;
-		case FP_VERIFY_RETRY_CENTER_FINGER:
-			printf("Please center your finger on the sensor and try again.\n");
-			break;
-		case FP_VERIFY_RETRY_REMOVE_FINGER:
-			printf("Please remove finger from the sensor and try again.\n");
-			break;
+		case FP_VERIFY_RETRY: msg = "Scan didn't quite work. Please try again."; break;
+		case FP_VERIFY_RETRY_TOO_SHORT: msg = "Swipe was too short, please try again."; break;
+		case FP_VERIFY_RETRY_CENTER_FINGER: msg = "Please center your finger on the sensor and try again."; break;
+		case FP_VERIFY_RETRY_REMOVE_FINGER: msg = "Please remove finger from the sensor and try again."; break;
+        default: msg = "unknown"; break;
 		}
-	} while (1);
+
+        if(r != FP_VERIFY_NO_MATCH && r != FP_VERIFY_MATCH) {
+            Local<Value> argv[] = { Nan::New(r), Nan::New(msg).ToLocalChecked() };;
+            callback.Call(2, argv);
+        }
+	} while (r != FP_VERIFY_NO_MATCH && r != FP_VERIFY_MATCH);
+
+    info.GetReturnValue().Set(Nan::New(r == FP_VERIFY_MATCH));
 }
 
 NAN_METHOD(discoverDevices)
@@ -237,6 +235,7 @@ NAN_MODULE_INIT(module_init) {
     Nan::Set(target, Nan::New("discoverDevices").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(discoverDevices)).ToLocalChecked());
     Nan::Set(target, Nan::New("openDevice").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(openDevice)).ToLocalChecked());
     Nan::Set(target, Nan::New("closeDevice").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(closeDevice)).ToLocalChecked());
+    Nan::Set(target, Nan::New("getEnrollStages").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(getEnrollStages)).ToLocalChecked());
     Nan::Set(target, Nan::New("enroll").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(enroll)).ToLocalChecked());
     Nan::Set(target, Nan::New("verify").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(verify)).ToLocalChecked());
     Nan::Set(target, Nan::New("setDebug").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(setDebug)).ToLocalChecked());
