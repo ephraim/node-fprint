@@ -8,13 +8,12 @@ if(ret) {
     devices.forEach(function(entry) {
         console.log("Found: " + entry);
     });
-
+    var prints = new Array();
+    var deviceHandle = fprint.openDevice(devices[0]);
     do {
-        var deviceHandle = fprint.openDevice(devices[0]);
         var stage = 1;
         var stages = fprint.getEnrollStages(deviceHandle);
         console.log("enroll your finger! You will need swipe your finger " + stages + " times.");
-
         console.log("stage " + stage++ + "/" + stages);
         ret = fprint.enroll(deviceHandle, function(state, message) {
             console.log("state: " + state + "; message: " + message)
@@ -23,15 +22,17 @@ if(ret) {
             }
         });
         if(ret.result) {
-            console.log("\n\nsucceeded! Now verifing it!");
-            ret = fprint.verify(deviceHandle, ret.fingerprint, function(state, message){
-                console.log("state: " + state + "; message: " + message)
-            });
-            console.log(ret);
-            break;
+            console.log("\n\nsucceeded!");
+            prints[prints.length] = ret.fingerprint;
         }
-        fprint.closeDevice(deviceHandle);
     }
-    while(1);
+    while(prints.length < 3);
+
+    ret = fprint.identify(deviceHandle, prints, function(state, message) {
+        console.log("state: " + state + "; message: " + message)
+    });
+    console.log(ret);
+
+    fprint.closeDevice(deviceHandle);
     fprint.exit();
 }
