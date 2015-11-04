@@ -43,7 +43,6 @@ struct fp_dev* toFPDev(unsigned int value)
     return fpDevice.dev;
 }
 
-
 NAN_METHOD(setDebug)
 {
     int debug;
@@ -117,8 +116,10 @@ NAN_METHOD(openDevice)
         fp_dscv_devs_free(discovered_devs);
         if(dev) {
             info.GetReturnValue().Set(fromFPDev(dev));
+			return;
         }
     }
+    info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_METHOD(closeDevice)
