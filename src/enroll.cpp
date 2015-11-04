@@ -50,7 +50,11 @@ void enroll_stopped_after(uv_handle_t* handle)
     delete data;
 }
 
+#ifdef OLD_UV_RUN_SIGNATURE
 void report_enroll_stopped(uv_async_t *handle, int status)
+#else
+void report_enroll_stopped(uv_async_t *handle)
+#endif
 {
     ENROLL_STOP *data = container_of(handle, ENROLL_STOP, async);
     Nan::HandleScope();
@@ -110,7 +114,11 @@ void enroll_after(uv_handle_t* handle)
     delete enrollData;
 }
 
+#ifdef OLD_UV_RUN_SIGNATURE
 void report_enroll_progress(uv_async_t *handle, int status)
+#else
+void report_enroll_progress(uv_async_t *handle)
+#endif
 {
     ENROLL_DATA *enrollData = container_of(handle, ENROLL_DATA, async);
     Nan::HandleScope();
