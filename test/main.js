@@ -15,18 +15,39 @@ if(ret) {
         console.log("enroll your finger! You will need swipe your finger " + stages + " times.");
         console.log("stage " + stage++ + "/" + stages);
         ret = fprint.enrollStart(deviceHandle, function(state, message, fingerprint) {
-            console.log("state: " + state + "; message: " + message)
+            console.log(message + "\n");
             if(state == 3) {
                 console.log("stage " + stage++ + "/" + stages);
             }
             else if(state == 1 || state == 2) {
-                console.log(fingerprint);
-
                 fprint.enrollStop(deviceHandle, function() {
-                    console.log("closing down");
-                    fprint.closeDevice(deviceHandle);
-                    fprint.exit();
+                    if(state == 1) {
+                        console.log("now your finger will be verified. Please swipe your finger once again.");
+                    	fprint.verifyStart(deviceHandle, fingerprint, function(state, message) {
+                            console.log(message);
+                            if(state == 1 || state == 0) {
+                                if(state == 1)
+                                    console.log("MATCHED.");
+                                else
+                                    console.log("MATCH FAILED.");
+                                fprint.verifyStop(deviceHandle, function () {
+                                    fprint.closeDevice(deviceHandle);
+                                    fprint.exit();
+                                });
+                            }
+                            else {
+                                console.log("Try again please. State: " + state);
+                            }
+                    	});
+                    }
+                    else {
+                        fprint.closeDevice(deviceHandle);
+                        fprint.exit();
+                    }
                 });
+            }
+            else {
+                console.log("Try again please. State: " + state);
             }
         });
     }

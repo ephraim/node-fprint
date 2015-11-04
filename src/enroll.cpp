@@ -18,25 +18,17 @@ typedef struct __ENROLL_STOP__ {
     Nan::Persistent<Function> callback;
 } ENROLL_STOP;
 
-static const char *enroll_result_to_name (int result)
+static const char *enroll_result_to_name(int result)
 {
 	switch (result) {
-	case FP_ENROLL_COMPLETE:
-		return "enroll-completed";
-	case FP_ENROLL_FAIL:
-		return "enroll-failed";
-	case FP_ENROLL_PASS:
-		return "enroll-stage-passed";
-	case FP_ENROLL_RETRY:
-		return "enroll-retry-scan";
-	case FP_ENROLL_RETRY_TOO_SHORT:
-		return "enroll-swipe-too-short";
-	case FP_ENROLL_RETRY_CENTER_FINGER:
-		return "enroll-finger-not-centered";
-	case FP_ENROLL_RETRY_REMOVE_FINGER:
-		return "enroll-remove-and-retry";
-	default:
-		return "enroll-unknown-error";
+	case FP_ENROLL_COMPLETE: return "enroll-completed";
+	case FP_ENROLL_FAIL: return "enroll-failed";
+	case FP_ENROLL_PASS: return "enroll-stage-passed";
+	case FP_ENROLL_RETRY: return "enroll-retry-scan";
+	case FP_ENROLL_RETRY_TOO_SHORT: return "enroll-swipe-too-short";
+	case FP_ENROLL_RETRY_CENTER_FINGER: return "enroll-finger-not-centered";
+	case FP_ENROLL_RETRY_REMOVE_FINGER: return "enroll-remove-and-retry";
+	default: return "enroll-unknown-error";
 	}
 }
 
@@ -51,9 +43,9 @@ void enroll_stopped_after(uv_handle_t* handle)
 }
 
 #ifdef OLD_UV_RUN_SIGNATURE
-void report_enroll_stopped(uv_async_t *handle, int status)
-#else
 void report_enroll_stopped(uv_async_t *handle)
+#else
+void report_enroll_stopped(uv_async_t *handle, int status)
 #endif
 {
     ENROLL_STOP *data = container_of(handle, ENROLL_STOP, async);
@@ -83,17 +75,22 @@ NAN_METHOD(enrollStop) {
     bool ret = false;
     ENROLL_STOP *data;
 
-    if(info.Length() != 2)
+    if(info.Length() < 1)
         return;
 
     dev = toFPDev(info[0]->ToNumber()->Value());
     if(initalized != 0 || dev == NULL)
         goto error;
 
-    data = new ENROLL_STOP;
-    data->callback.Reset(v8::Local<v8::Function>::Cast(info[1]));
-    uv_async_init(uv_default_loop(), &data->async, report_enroll_stopped);
-    ret = fp_async_enroll_stop(dev, enroll_stop_cb, data) == 0;
+    if(info.Length() > 1) {
+        data = new ENROLL_STOP;
+        data->callback.Reset(v8::Local<v8::Function>::Cast(info[1]));
+        uv_async_init(uv_default_loop(), &data->async, report_enroll_stopped);
+        ret = fp_async_enroll_stop(dev, enroll_stop_cb, data) == 0;
+    }
+    else
+        ret = fp_async_enroll_stop(dev, NULL, NULL) == 0;
+
 error:
     info.GetReturnValue().Set(Nan::New(ret));
     return;
@@ -115,9 +112,9 @@ void enroll_after(uv_handle_t* handle)
 }
 
 #ifdef OLD_UV_RUN_SIGNATURE
-void report_enroll_progress(uv_async_t *handle, int status)
-#else
 void report_enroll_progress(uv_async_t *handle)
+#else
+void report_enroll_progress(uv_async_t *handle, int status)
 #endif
 {
     ENROLL_DATA *enrollData = container_of(handle, ENROLL_DATA, async);
@@ -126,13 +123,14 @@ void report_enroll_progress(uv_async_t *handle)
     if(!enrollData)
         return;
 
-    printf("report enroll progress: result: %d\n", enrollData->result);
-
     Nan::Callback callback(Nan::New<Function>(enrollData->callback));
     Local<Value> argv[3];
     argv[0] = Nan::New(enrollData->result);
-    argv[1] = Nan::New(enroll_result_to_name(enrollData->result)).ToLocalChecked();
+    argv[1] = Nan::Null();
     argv[2] = Nan::Null();
+
+    if(enroll_result_to_name(enrollData->result))
+        argv[1] = Nan::New(enroll_result_to_name(enrollData->result)).ToLocalChecked();
 
     if(enrollData->result == FP_ENROLL_COMPLETE)
         argv[2] = Nan::CopyBuffer((const char*)enrollData->fingerprint_data, enrollData->fingerprint_size).ToLocalChecked();
@@ -167,7 +165,7 @@ NAN_METHOD(enrollStart) {
     bool ret = false;
     ENROLL_DATA *enrollData;
 
-    if(info.Length() != 2)
+    if(info.Length() < 2)
         return;
 
     dev = toFPDev(info[0]->ToNumber()->Value());
