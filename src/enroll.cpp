@@ -3,8 +3,6 @@
 using namespace v8;
 using v8::FunctionTemplate;
 
-extern int initalized;
-
 typedef struct __ENROLL_DATA__ {
     uv_async_t async;
     Nan::Persistent<Function> callback;
@@ -75,21 +73,17 @@ NAN_METHOD(enrollStop) {
     bool ret = false;
     ENROLL_STOP *data;
 
-    if(info.Length() < 1)
+    if(info.Length() < 2)
         return;
 
     dev = toFPDev(info[0]->ToNumber()->Value());
     if(initalized != 0 || dev == NULL)
         goto error;
 
-    if(info.Length() > 1) {
-        data = new ENROLL_STOP;
-        data->callback.Reset(v8::Local<v8::Function>::Cast(info[1]));
-        uv_async_init(uv_default_loop(), &data->async, report_enroll_stopped);
-        ret = fp_async_enroll_stop(dev, enroll_stop_cb, data) == 0;
-    }
-    else
-        ret = fp_async_enroll_stop(dev, NULL, NULL) == 0;
+    data = new ENROLL_STOP;
+    data->callback.Reset(v8::Local<v8::Function>::Cast(info[1]));
+    uv_async_init(uv_default_loop(), &data->async, report_enroll_stopped);
+    ret = fp_async_enroll_stop(dev, enroll_stop_cb, data) == 0;
 
 error:
     info.GetReturnValue().Set(Nan::New(ret));

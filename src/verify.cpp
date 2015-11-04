@@ -3,8 +3,6 @@
 using namespace v8;
 using v8::FunctionTemplate;
 
-extern int initalized;
-
 typedef struct __VERIFY_STOP__ {
     uv_async_t async;
     Nan::Persistent<Function> callback;
@@ -66,28 +64,22 @@ static void verify_stop_cb(struct fp_dev *dev, void *user_data)
     uv_async_send(&data->async);
 }
 
-int fp_async_verify_stop(struct fp_dev *dev, fp_verify_stop_cb callback, void *user_data);
-
 NAN_METHOD(verifyStop) {
     bool ret = false;
     struct fp_dev *dev;
     VERIFY_STOP *data;
 
-    if(info.Length() < 1)
+    if(info.Length() < 2)
         goto error;
 
     dev = toFPDev(info[0]->ToNumber()->Value());
     if(initalized != 0 || dev == NULL)
         goto error;
 
-    if(info.Length() > 1) {
-        data = new VERIFY_STOP;
-        data->callback.Reset(v8::Local<v8::Function>::Cast(info[1]));
-        uv_async_init(uv_default_loop(), &data->async, report_verify_stop);
-	   ret = fp_async_verify_stop(dev, verify_stop_cb, data) == 0;
-    }
-    else
-	   ret = fp_async_verify_stop(dev, NULL, 0) == 0;
+    data = new VERIFY_STOP;
+    data->callback.Reset(v8::Local<v8::Function>::Cast(info[1]));
+    uv_async_init(uv_default_loop(), &data->async, report_verify_stop);
+    ret = fp_async_verify_stop(dev, verify_stop_cb, data) == 0;
 
 error:
     info.GetReturnValue().Set(Nan::New(ret));

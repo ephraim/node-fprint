@@ -8,7 +8,6 @@ if(ret) {
         devices.forEach(function(entry) {
             console.log("Found: " + entry);
         });
-        var prints = new Array();
         var deviceHandle = fprint.openDevice(devices[0]);
         var stage = 1;
         var stages = fprint.getEnrollStages(deviceHandle);

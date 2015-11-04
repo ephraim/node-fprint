@@ -1,15 +1,15 @@
 #include "fingerprint.h"
 #include "enroll.h"
 #include "verify.h"
+#include "identify.h"
 
 #define container_of(ptr, type, member) ({			\
 	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
 	(type *)( (char *)__mptr - offsetof(type,member) );})
 
 using namespace v8;
-using v8::FunctionTemplate;
-
 using namespace std;
+using v8::FunctionTemplate;
 
 typedef struct __POLL_DATA__ {
     uv_thread_t thread;
@@ -186,8 +186,8 @@ NAN_MODULE_INIT(module_init) {
     NAN_EXPORT(target, enrollStop);
 	NAN_EXPORT(target, verifyStart);
 	NAN_EXPORT(target, verifyStop);
-	/*NAN_EXPORT(target, identifyStart);
-	NAN_EXPORT(target, identifyStop);*/
+	NAN_EXPORT(target, identifyStart);
+	NAN_EXPORT(target, identifyStop);
     NAN_EXPORT(target, setDebug);
 }
 
