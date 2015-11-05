@@ -2,7 +2,7 @@
   "name": "node-fprint",
   "version": "0.0.1",
   "description": "fprint wrapper for nodejs",
-  "repsitory": {
+  "repository": {
     "type": "git",
     "url": "https://github.com/ephraim/node-fingerprint.git"
   },
