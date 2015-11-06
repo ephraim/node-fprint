@@ -1,5 +1,6 @@
 #include <nan.h>
 #include <libfprint/fprint.h>
+#include <string>
 
 extern int initalized;
 
@@ -9,3 +10,6 @@ extern int initalized;
 
 unsigned int fromFPDev(struct fp_dev *dev);
 struct fp_dev* toFPDev(unsigned int value);
+
+std::string toString(unsigned char* buffer, unsigned long size);
+unsigned char* fromString(std::string hex, unsigned long *size);

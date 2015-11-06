@@ -1,7 +1,13 @@
+#include <iomanip>
+#include <sstream>
+#include <zlib.h>
+
 #include "fingerprint.h"
+
 #include "enroll.h"
 #include "verify.h"
 #include "identify.h"
+
 
 #define container_of(ptr, type, member) ({			\
 	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
@@ -41,6 +47,79 @@ struct fp_dev* toFPDev(unsigned int value)
 
     fpDevice.value = value;
     return fpDevice.dev;
+}
+
+#define UNCOMPRESSED_SIZE 12050
+unsigned char* fromString(std::string hex, unsigned long *size)
+{
+	unsigned char *buffer = NULL;
+	unsigned char *uncompressed = NULL;
+	unsigned long length;
+	unsigned long i = 0;
+	int tmp;
+
+	if(!size)
+		return NULL;
+
+	if(hex.length() % 2 != 0 || !size)
+		goto error;
+
+	length = hex.length() / 2;
+	*size = UNCOMPRESSED_SIZE;
+	buffer = (unsigned char*)malloc(length * sizeof(unsigned char));
+	uncompressed = (unsigned char*)malloc(*size * sizeof(unsigned char));
+
+	for(std::string::iterator it=hex.begin(); it!=hex.end(); it++) {
+		std::string data;
+
+		if(i >= length)
+			goto error;
+
+		data += *it++;
+		if(it==hex.end())
+			goto error;
+
+		data += *it;
+
+		std::stringstream converter(data);
+		converter >> std::hex >> tmp;
+		buffer[i++] = (unsigned char)tmp;
+	}
+
+	if(uncompress(uncompressed, size, buffer, length) == Z_OK) {
+		free(buffer);
+		return uncompressed;
+	}
+
+error:
+	if(buffer != NULL)
+		free(buffer);
+
+	if(uncompressed != NULL)
+		free(uncompressed);
+
+	*size = 0;
+	return NULL;
+}
+
+std::string toString(unsigned char* buffer, unsigned long size)
+{
+    std::stringstream converter;
+	unsigned long compressedLength = 0;
+
+	compressedLength = compressBound(size);
+	unsigned char *compressed = (unsigned char*)malloc(compressedLength);
+
+	if(compressed && compress(compressed, &compressedLength, buffer, size) == Z_OK) {
+		converter << std::setfill('0');
+		for(unsigned long l = 0; l < compressedLength; l++) {
+			converter << std::hex << std::setw(2) << static_cast<int>(compressed[l]);
+		}
+
+		free(compressed);
+		return converter.str();
+	}
+	return "";
 }
 
 NAN_METHOD(setDebug)

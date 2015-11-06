@@ -21,6 +21,7 @@ if(ret) {
             else if(state == 1 || state == 2) {
                 fprint.enrollStop(deviceHandle, function() {
                     if(state == 1) {
+                        console.log("fingerprint size: " + fingerprint.length);
                         console.log("now your finger will be verified. Please swipe your finger once again.");
                     	fprint.verifyStart(deviceHandle, fingerprint, function(state, message) {
                             console.log(message);

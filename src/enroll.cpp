@@ -40,7 +40,7 @@ void enroll_stopped_after(uv_handle_t* handle)
     delete data;
 }
 
-#ifdef OLD_UV_RUN_SIGNATURE
+#ifndef OLD_UV_RUN_SIGNATURE
 void report_enroll_stopped(uv_async_t *handle)
 #else
 void report_enroll_stopped(uv_async_t *handle, int status)
@@ -105,7 +105,7 @@ void enroll_after(uv_handle_t* handle)
     delete enrollData;
 }
 
-#ifdef OLD_UV_RUN_SIGNATURE
+#ifndef OLD_UV_RUN_SIGNATURE
 void report_enroll_progress(uv_async_t *handle)
 #else
 void report_enroll_progress(uv_async_t *handle, int status)
@@ -126,8 +126,14 @@ void report_enroll_progress(uv_async_t *handle, int status)
     if(enroll_result_to_name(enrollData->result))
         argv[1] = Nan::New(enroll_result_to_name(enrollData->result)).ToLocalChecked();
 
-    if(enrollData->result == FP_ENROLL_COMPLETE)
-        argv[2] = Nan::CopyBuffer((const char*)enrollData->fingerprint_data, enrollData->fingerprint_size).ToLocalChecked();
+    if(enrollData->result == FP_ENROLL_COMPLETE) {
+        std::string fingerprint = toString(enrollData->fingerprint_data, enrollData->fingerprint_size);
+        if(fingerprint.empty()) {
+            Nan::ThrowError("fingerprint data convert failed!");
+            return;
+        }
+        argv[2] = Nan::New(fingerprint.c_str()).ToLocalChecked();
+    }
 
     callback.Call(3, argv);
 

@@ -5,14 +5,18 @@
 			"sources": [ "src/enroll.cpp", "src/verify.cpp", "src/identify.cpp", "src/fingerprint.cpp" ],
 			"include_dirs": [
 				"<!(node -e \"require('nan')\")",
-				"<!(pkg-config --cflags libfprint)"
+				"<!(pkg-config --cflags libfprint)",
+				"<!(pkg-config --cflags zlib)"
 			],
-			"libraries": [ "<!(pkg-config --libs libfprint)" ],
+			"libraries": [
+				"<!(pkg-config --libs libfprint)",
+				"<!(pkg-config --cflags zlib)"
+			],
 			"variables": {
-				"node_version": '<!(node --version | sed -e "s/^v\([0-9]*\\.[0-9]*\).*$/\\1/")'
+				"node_version": '<!(node --version | sed -e "s/^v\([0-9]*\\.[0-9]*\).*$/\\1/")',
 			},
 			"target_conditions": [
-				[ "node_version == '0.8'", { "defines": ["OLD_UV_RUN_SIGNATURE"] } ]
+				[ "node_version == '0.10'", { "defines": ["OLD_UV_RUN_SIGNATURE"] } ]
 			]
 		}
 	],

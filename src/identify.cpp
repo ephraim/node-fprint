@@ -13,6 +13,7 @@ typedef struct __IDENTIFY_START__ {
     Nan::Persistent<Function> callback;
     int result;
     int index;
+    struct fp_print_data **fpdata;
 } IDENTIFY_START;
 
 static const char *identify_result_to_name(int result)
@@ -38,7 +39,7 @@ void identify_stop_after(uv_handle_t* handle)
     delete data;
 }
 
-#ifdef OLD_UV_RUN_SIGNATURE
+#ifndef OLD_UV_RUN_SIGNATURE
 void report_identify_stop(uv_async_t *handle)
 #else
 void report_identify_stop(uv_async_t *handle, int status)
@@ -89,14 +90,23 @@ error:
 void identify_start_after(uv_handle_t* handle)
 {
     IDENTIFY_START *data = container_of((uv_async_t *)handle, IDENTIFY_START, async);
+    int i;
 
     if(!data)
         return;
 
+    if(data->fpdata != NULL) {
+        for(i = 0; data->fpdata[i] != NULL; i++)
+        {
+            fp_print_data_free(data->fpdata[i]);
+        }
+        free(data->fpdata);
+    }
+
     delete data;
 }
 
-#ifdef OLD_UV_RUN_SIGNATURE
+#ifndef OLD_UV_RUN_SIGNATURE
 void report_identify_start(uv_async_t *handle)
 #else
 void report_identify_start(uv_async_t *handle, int status)
@@ -140,12 +150,11 @@ static void identify_start_cb(struct fp_dev *dev, int result, size_t match_offse
 
 NAN_METHOD(identifyStart) {
     bool ret = false;
-    struct fp_dev *dev;
-    IDENTIFY_START *data;
-    int fingerprints;
-    struct fp_print_data **fpdata = NULL;
+    struct fp_dev *dev = NULL;
+    IDENTIFY_START *data = NULL;
+    int fingerprints = 0;
     Local<Object> obj;
-    int i;
+    int i = 0;
 
     if(info.Length() < 3)
         goto error;
@@ -159,15 +168,34 @@ NAN_METHOD(identifyStart) {
     data->callback.Reset(v8::Local<v8::Function>::Cast(info[2]));
 
     fingerprints = obj->Get(Nan::New("length").ToLocalChecked())->ToObject()->Uint32Value();
-    fpdata = (struct fp_print_data **)calloc(fingerprints + 1, sizeof(struct fp_print_data *));
-    for(i = 0; i < fingerprints; i++) {
-        fpdata[i] = fp_print_data_from_data((unsigned char*)node::Buffer::Data(obj->Get(i)), (size_t)node::Buffer::Length(obj->Get(i)));
+    data->fpdata = (struct fp_print_data **)calloc(fingerprints + 1, sizeof(struct fp_print_data *));
+    if(data->fpdata) {
+        for(i = 0; i < fingerprints; i++) {
+            std::string s(*String::Utf8Value(obj->Get(i)->ToString()));
+            unsigned char *tmp;
+            unsigned long length;
+
+            tmp = fromString(s, &length);
+            if(tmp) {
+                data->fpdata[i] = fp_print_data_from_data(tmp, length);
+            }
+            else {
+                data->fpdata[i] = NULL;
+                goto error;
+            }
+        }
+        data->fpdata[i] = NULL;
+
+        uv_async_init(uv_default_loop(), &data->async, report_identify_start);
+        ret = fp_async_identify_start(dev, data->fpdata, identify_start_cb, data) == 0;
     }
-    fpdata[i] = NULL;
-
-    uv_async_init(uv_default_loop(), &data->async, report_identify_start);
-   ret = fp_async_identify_start(dev, fpdata, identify_start_cb, data) == 0;
-
 error:
+    if(!ret && data && data->fpdata != NULL) {
+        for(i = 0; data->fpdata[i] != NULL; i++)
+        {
+            fp_print_data_free(data->fpdata[i]);
+        }
+        free(data->fpdata);
+    }
     info.GetReturnValue().Set(Nan::New(ret));
 }

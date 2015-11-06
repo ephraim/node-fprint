@@ -12,6 +12,7 @@ typedef struct __VERIFY_START__ {
     uv_async_t async;
     Nan::Persistent<Function> callback;
     int result;
+    struct fp_print_data *fpdata;
 } VERIFY_START;
 
 static const char *verify_result_to_name(int result)
@@ -37,7 +38,7 @@ void verify_stop_after(uv_handle_t* handle)
     delete data;
 }
 
-#ifdef OLD_UV_RUN_SIGNATURE
+#ifndef OLD_UV_RUN_SIGNATURE
 void report_verify_stop(uv_async_t *handle)
 #else
 void report_verify_stop(uv_async_t *handle, int status)
@@ -92,10 +93,13 @@ void verify_start_after(uv_handle_t* handle)
     if(!data)
         return;
 
+    if(data->fpdata) {
+        fp_print_data_free(data->fpdata);
+    }
     delete data;
 }
 
-#ifdef OLD_UV_RUN_SIGNATURE
+#ifndef OLD_UV_RUN_SIGNATURE
 void report_verify_start(uv_async_t *handle)
 #else
 void report_verify_start(uv_async_t *handle, int status)
@@ -135,11 +139,12 @@ static void verify_start_cb(struct fp_dev *dev, int result, struct fp_img *img, 
 }
 
 NAN_METHOD(verifyStart) {
-    struct fp_print_data *fpdata = NULL;
     bool ret = false;
     struct fp_dev *dev;
     VERIFY_START *data;
-    Local<Object> obj;
+    std::string s;
+    unsigned char *tmp;
+    unsigned long length;
 
     if(info.Length() < 3)
         goto error;
@@ -150,10 +155,20 @@ NAN_METHOD(verifyStart) {
 
     data = new VERIFY_START;
     data->callback.Reset(v8::Local<v8::Function>::Cast(info[2]));
-    obj = info[1]->ToObject();
-    fpdata = fp_print_data_from_data((unsigned char*)node::Buffer::Data(obj), (size_t)node::Buffer::Length(obj));
-    uv_async_init(uv_default_loop(), &data->async, report_verify_start);
-	ret = fp_async_verify_start(dev, fpdata, verify_start_cb, data) == 0;
+    s = *String::Utf8Value(info[1]->ToString());
+    tmp = fromString(s, &length);
+    if(tmp) {
+        data->fpdata = fp_print_data_from_data(tmp, length);
+        free(tmp);
+        if(data->fpdata) {
+            uv_async_init(uv_default_loop(), &data->async, report_verify_start);
+        	ret = fp_async_verify_start(dev, data->fpdata, verify_start_cb, data) == 0;
+        }
+    }
+    else {
+        printf("Fingerprint:\n%s\n", s.c_str());
+        printf("fromString returned: NULL\n");
+    }
 error:
     info.GetReturnValue().Set(Nan::New(ret));
 }
