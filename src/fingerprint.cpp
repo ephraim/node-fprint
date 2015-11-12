@@ -219,7 +219,7 @@ void poll_fp(void *d)
     POLL_DATA *polldata = (POLL_DATA*)d;
     struct timeval zerotimeout = {
         .tv_sec = 0,
-        .tv_usec = 0,
+        .tv_usec = 10000,
     };
 
     if(!polldata)
