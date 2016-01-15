@@ -10,7 +10,7 @@
 			],
 			"libraries": [
 				"<!(pkg-config --libs libfprint)",
-				"<!(pkg-config --cflags zlib)"
+				"<!(pkg-config --libs-only-l zlib)"
 			],
 			"variables": {
 				"node_version": '<!(node --version | sed -e "s/^v\([0-9]*\\.[0-9]*\).*$/\\1/")',
