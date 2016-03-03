@@ -22,8 +22,6 @@ typedef struct __POLL_DATA__ {
     bool exit;
 } POLL_DATA;
 
-Nan::Persistent<Object> module_handle;
-
 int initalized = -1;
 static POLL_DATA *polldata = NULL;
 
@@ -254,8 +252,6 @@ NAN_METHOD(exit)
 }
 
 NAN_MODULE_INIT(module_init) {
-    module_handle.Reset(Nan::New(target));
-
     NAN_EXPORT(target, init);
     NAN_EXPORT(target, exit);
     NAN_EXPORT(target, discoverDevices);
