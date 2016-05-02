@@ -47,7 +47,7 @@ void report_enroll_stopped(uv_async_t *handle, int status)
 #endif
 {
     ENROLL_STOP *data = container_of(handle, ENROLL_STOP, async);
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if(!data)
         return;
@@ -112,7 +112,7 @@ void report_enroll_progress(uv_async_t *handle, int status)
 #endif
 {
     ENROLL_DATA *enrollData = container_of(handle, ENROLL_DATA, async);
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if(!enrollData)
         return;
