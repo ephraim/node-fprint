@@ -45,7 +45,7 @@ void report_verify_stop(uv_async_t *handle, int status)
 #endif
 {
     VERIFY_STOP *data = container_of(handle, VERIFY_STOP, async);
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if(!data)
         return;
@@ -106,7 +106,7 @@ void report_verify_start(uv_async_t *handle, int status)
 #endif
 {
     VERIFY_START *data = container_of(handle, VERIFY_START, async);
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if(!data)
         return;
