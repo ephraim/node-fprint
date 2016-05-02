@@ -46,7 +46,7 @@ void report_identify_stop(uv_async_t *handle, int status)
 #endif
 {
     IDENTIFY_STOP *data = container_of(handle, IDENTIFY_STOP, async);
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if(!data)
         return;
@@ -113,7 +113,7 @@ void report_identify_start(uv_async_t *handle, int status)
 #endif
 {
     IDENTIFY_START *data = container_of(handle, IDENTIFY_START, async);
-    Nan::HandleScope();
+    Nan::HandleScope scope;
 
     if(!data)
         return;
