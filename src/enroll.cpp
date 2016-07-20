@@ -146,7 +146,12 @@ static void enroll_stage_cb(struct fp_dev *dev, int result, struct fp_print_data
 {
     ENROLL_DATA *enrollData = (ENROLL_DATA*)user_data;
 
-    if(!enrollData || result < 0)
+	// result will return -number for anything that caused the device to fail to 
+	// Initialize, -1 appears to be a valid result that can be safely ignored
+	// Example: the UV4000, if unable to power up properly; will return a -110 (ETIMEOUT) here.
+	// Device then is then totally unusable, and their are no additional errors presented after
+	// this point, so we have to catch it here and let the error through.
+    if(!enrollData || result == -1)
         return;
 
     enrollData->result = result;
