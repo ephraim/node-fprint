@@ -74,7 +74,7 @@ NAN_METHOD(identifyStop) {
     if(info.Length() < 2)
         goto error;
 
-    dev = toFPDev(info[0]->ToNumber()->Value());
+    dev = toFPDev(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
     if(initalized != 0 || dev == NULL)
         goto error;
 
@@ -159,7 +159,7 @@ NAN_METHOD(identifyStart) {
     if(info.Length() < 3)
         goto error;
 
-    dev = toFPDev(info[0]->ToNumber()->Value());
+    dev = toFPDev(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
     if(initalized != 0 || dev == NULL)
         goto error;
 

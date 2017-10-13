@@ -141,7 +141,7 @@ NAN_METHOD(getEnrollStages) {
     if(info.Length() != 1)
         return;
 
-    dev = toFPDev(info[0]->ToNumber()->Value());
+    dev = toFPDev(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
     if(initalized != 0 || dev == NULL)
         return;
 
@@ -203,7 +203,7 @@ NAN_METHOD(closeDevice)
 {
     if(info.Length() == 1) {
         struct fp_dev *dev;
-        dev = toFPDev(info[0]->ToNumber()->Value());
+        dev = toFPDev(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
         if(initalized != 0)
             return;
 
