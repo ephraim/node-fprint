@@ -51,7 +51,8 @@ void report_verify_stop(uv_async_t *handle, int status)
         return;
 
     Nan::Callback callback(Nan::New<Function>(data->callback));
-    callback.Call(0, NULL);
+    Nan::AsyncResource asyncResource("verifyStopped");
+    callback.Call(0, NULL, &asyncResource);
     uv_close((uv_handle_t*)&data->async, verify_stop_after);
 }
 
@@ -112,6 +113,7 @@ void report_verify_start(uv_async_t *handle, int status)
         return;
 
     Nan::Callback callback(Nan::New<Function>(data->callback));
+    Nan::AsyncResource asyncResource("verifyStarted");
     Local<Value> argv[2];
     argv[0] = Nan::New(data->result);
     argv[1] = Nan::Null();
@@ -119,7 +121,7 @@ void report_verify_start(uv_async_t *handle, int status)
     if(verify_result_to_name(data->result))
         argv[1] = Nan::New(verify_result_to_name(data->result)).ToLocalChecked();
 
-    callback.Call(2, argv);
+    callback.Call(2, argv, &asyncResource);
     if(data->result == FP_VERIFY_NO_MATCH || data->result == FP_VERIFY_MATCH) {
         uv_close((uv_handle_t*)&data->async, verify_start_after);
     }

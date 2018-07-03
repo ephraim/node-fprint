@@ -53,7 +53,8 @@ void report_enroll_stopped(uv_async_t *handle, int status)
         return;
 
     Nan::Callback callback(Nan::New<Function>(data->callback));
-    callback.Call(0, NULL);
+    Nan::AsyncResource asyncResource("enrollStopped");
+    callback.Call(0, NULL, &asyncResource);
 
     uv_close((uv_handle_t*)&data->async, enroll_stopped_after);
 }
@@ -118,6 +119,7 @@ void report_enroll_progress(uv_async_t *handle, int status)
         return;
 
     Nan::Callback callback(Nan::New<Function>(enrollData->callback));
+    Nan::AsyncResource asyncResource("enrollProgress");
     Local<Value> argv[3];
     argv[0] = Nan::New(enrollData->result);
     argv[1] = Nan::Null();
@@ -135,7 +137,7 @@ void report_enroll_progress(uv_async_t *handle, int status)
         argv[2] = Nan::New(fingerprint.c_str()).ToLocalChecked();
     }
 
-    callback.Call(3, argv);
+    callback.Call(3, argv, &asyncResource);
 
     if(enrollData->result == FP_ENROLL_FAIL || enrollData->result == FP_ENROLL_COMPLETE) {
         uv_close((uv_handle_t*)&enrollData->async, enroll_after);

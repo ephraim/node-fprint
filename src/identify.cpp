@@ -52,7 +52,8 @@ void report_identify_stop(uv_async_t *handle, int status)
         return;
 
     Nan::Callback callback(Nan::New<Function>(data->callback));
-    callback.Call(0, NULL);
+    Nan::AsyncResource asyncResource("identifyStopped");
+    callback.Call(0, NULL, &asyncResource);
     uv_close((uv_handle_t*)&data->async, identify_stop_after);
 }
 
@@ -119,6 +120,7 @@ void report_identify_start(uv_async_t *handle, int status)
         return;
 
     Nan::Callback callback(Nan::New<Function>(data->callback));
+    Nan::AsyncResource asyncResource("identifyStarted");
     Local<Value> argv[3];
     argv[0] = Nan::New(data->result);
     argv[1] = Nan::Null();
@@ -130,7 +132,7 @@ void report_identify_start(uv_async_t *handle, int status)
     if(data->result == FP_VERIFY_MATCH)
         argv[2] = Nan::New(data->index);
 
-    callback.Call(3, argv);
+    callback.Call(3, argv, &asyncResource);
     uv_close((uv_handle_t*)&data->async, identify_start_after);
 }
 
