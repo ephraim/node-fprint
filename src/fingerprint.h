@@ -8,8 +8,8 @@ extern int initalized;
 	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
 	(type *)( (char *)__mptr - offsetof(type,member) );})
 
-unsigned int fromFPDev(struct fp_dev *dev);
-struct fp_dev* toFPDev(unsigned int value);
+int fromFPDev(struct fp_dev *dev);
+struct fp_dev* toFPDev(int value);
 
 std::string toString(unsigned char* buffer, unsigned long size);
 unsigned char* fromString(std::string hex, unsigned long *size);

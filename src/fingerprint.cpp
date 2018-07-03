@@ -7,6 +7,7 @@
 #include "enroll.h"
 #include "verify.h"
 #include "identify.h"
+#include <vector>
 
 
 #define container_of(ptr, type, member) ({			\
@@ -24,27 +25,19 @@ typedef struct __POLL_DATA__ {
 
 int initalized = -1;
 static POLL_DATA *polldata = NULL;
+static vector<struct fp_dev*> devices;
 
-unsigned int fromFPDev(struct fp_dev *dev)
+int fromFPDev(struct fp_dev *dev)
 {
-    union {
-        struct fp_dev *dev;
-        unsigned int value;
-    } fpDevice;
-
-    fpDevice.dev = dev;
-    return fpDevice.value;
+    int idx = devices.size();
+    devices.resize(idx + 1);
+    devices[idx] = dev;
+    return idx;
 }
 
-struct fp_dev* toFPDev(unsigned int value)
+struct fp_dev* toFPDev(int idx)
 {
-    union {
-        struct fp_dev *dev;
-        unsigned int value;
-    } fpDevice;
-
-    fpDevice.value = value;
-    return fpDevice.dev;
+    return devices[idx];
 }
 
 #define UNCOMPRESSED_SIZE 12050
@@ -203,12 +196,15 @@ NAN_METHOD(closeDevice)
 {
     if(info.Length() == 1) {
         struct fp_dev *dev;
-        dev = toFPDev(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
+        int i = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
+        dev = toFPDev(i);
         if(initalized != 0)
             return;
 
-        if(dev)
+        if(dev) {
             fp_dev_close(dev);
+            devices[i] = NULL;
+        }
     }
 }
 
