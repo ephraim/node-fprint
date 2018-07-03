@@ -1,6 +1,6 @@
 {
   "name": "node-fprint",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "fprint wrapper for nodejs",
   "repository": {
     "type": "git",
