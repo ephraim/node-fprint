@@ -147,6 +147,7 @@ NAN_METHOD(verifyStart) {
     std::string s;
     unsigned char *tmp;
     unsigned long length;
+    Isolate* isolate = info.GetIsolate();
 
     if(info.Length() < 3)
         goto error;
@@ -156,8 +157,9 @@ NAN_METHOD(verifyStart) {
         goto error;
 
     data = new VERIFY_START;
+
     data->callback.Reset(v8::Local<v8::Function>::Cast(info[2]));
-    s = *String::Utf8Value(info[1]->ToString());
+    s = *String::Utf8Value(isolate, info[1]);
     tmp = fromString(s, &length);
     if(tmp) {
         data->fpdata = fp_print_data_from_data(tmp, length);

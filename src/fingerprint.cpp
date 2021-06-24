@@ -113,21 +113,6 @@ std::string toString(unsigned char* buffer, unsigned long size)
 	return "";
 }
 
-NAN_METHOD(setDebug)
-{
-    int debug;
-
-    if(info.Length() == 1) {
-        debug = info[0]->ToInteger()->Value();
-
-        if(initalized != 0)
-            return;
-
-        if(debug > 0)
-            fp_set_debug(debug);
-    }
-}
-
 NAN_METHOD(getEnrollStages) {
     struct fp_dev *dev;
 
@@ -165,13 +150,16 @@ NAN_METHOD(discoverDevices)
 
 NAN_METHOD(openDevice)
 {
+    Isolate* isolate = info.GetIsolate();
+    Local<Context> context = isolate->GetCurrentContext();
+
     if(info.Length() == 1) {
         struct fp_dscv_dev **discovered_devs;
         struct fp_driver *drv;
         struct fp_dev *dev = NULL;
         string drivername;
 
-        drivername = string(*v8::String::Utf8Value(info[0]->ToString()));
+        drivername = string(*v8::String::Utf8Value(isolate, info[0]->ToString(context).ToLocalChecked()));
         if(initalized != 0)
             return;
 
@@ -247,7 +235,7 @@ NAN_METHOD(exit)
     initalized = -1;
 }
 
-NAN_MODULE_INIT(module_init) {
+void module_init(v8::Local<v8::Object> target, v8::Local<v8::Value> module, void* priv) {
     NAN_EXPORT(target, init);
     NAN_EXPORT(target, exit);
     NAN_EXPORT(target, discoverDevices);
@@ -260,7 +248,6 @@ NAN_MODULE_INIT(module_init) {
 	NAN_EXPORT(target, verifyStop);
 	NAN_EXPORT(target, identifyStart);
 	NAN_EXPORT(target, identifyStop);
-    NAN_EXPORT(target, setDebug);
 }
 
 NODE_MODULE(fingerprint, module_init)

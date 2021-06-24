@@ -157,6 +157,8 @@ NAN_METHOD(identifyStart) {
     int fingerprints = 0;
     Local<Object> obj;
     int i = 0;
+    Isolate* isolate = info.GetIsolate();
+    Local<Context> context = isolate->GetCurrentContext();
 
     if(info.Length() < 3)
         goto error;
@@ -166,14 +168,14 @@ NAN_METHOD(identifyStart) {
         goto error;
 
     data = new IDENTIFY_START;
-    obj = info[1]->ToObject();
+    obj = info[1]->ToObject(context).ToLocalChecked();
     data->callback.Reset(v8::Local<v8::Function>::Cast(info[2]));
 
-    fingerprints = obj->Get(Nan::New("length").ToLocalChecked())->ToObject()->Uint32Value();
+    fingerprints = obj->Get(context, Nan::New("length").ToLocalChecked()).ToLocalChecked()->ToObject(context).ToLocalChecked()->Uint32Value(context).ToChecked();
     data->fpdata = (struct fp_print_data **)calloc(fingerprints + 1, sizeof(struct fp_print_data *));
     if(data->fpdata) {
         for(i = 0; i < fingerprints; i++) {
-            std::string s(*String::Utf8Value(obj->Get(i)->ToString()));
+            std::string s(*String::Utf8Value(isolate, obj->Get(context, i).ToLocalChecked()->ToString(context).ToLocalChecked()));
             unsigned char *tmp;
             unsigned long length;
 
